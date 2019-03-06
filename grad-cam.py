@@ -7,7 +7,7 @@ import cv2
 import sys
 import numpy as np
 import argparse
-resnet = models.resnet50(pretrained=True)
+resnet = models.resnet50(pretrained=True)#这里单独加载一个包含全连接层的resnet50模型
 class FeatureExtractor():
     """ Class for extracting activations and 
     registering gradients from targetted intermediate layers """
@@ -22,7 +22,7 @@ class FeatureExtractor():
     def __call__(self, x):
         outputs = []
         self.gradients = []
-        for name, module in self.model._modules.items():
+        for name, module in self.model._modules.items():##resnet50没有.feature这个特征，直接删除用就可以。
             x = module(x)
             print('name=',name)
             print('x.size()=',x.size())
@@ -47,7 +47,7 @@ class ModelOutputs():
 		target_activations, output  = self.feature_extractor(x)
 		output = output.view(output.size(0), -1)
 		print('classfier=',output.size())
-		output = resnet.fc(output)
+		output = resnet.fc(output)##这里就是为什么我们多加载一个resnet模型进来的原因，因为后面我们命名的model不包含fc层，但是这里又偏偏要使用。
 		#print(output.size())
 		return target_activations, output
 
@@ -72,7 +72,6 @@ def show_cam_on_image(img, mask):
 	cam = heatmap + np.float32(img)
 	cam = cam / np.max(cam)
 	cv2.imwrite("cam.jpg", np.uint8(255 * cam))
-
 class GradCam:
 	def __init__(self, model, target_layer_names, use_cuda):
 		self.model = model
@@ -103,9 +102,9 @@ class GradCam:
 		else:
 			one_hot = torch.sum(one_hot * output)
 
+		self.model.zero_grad()##这两行同理，features不包含，可以重新加回去试一试，会报错不包含这个对象。
 		self.model.zero_grad()
-		self.model.zero_grad()
-		one_hot.backward(retain_graph=True)
+		one_hot.backward(retain_graph=True)##这里适配我们的torch0.4及以上，我用的1.0也可以完美兼容。（variable改成graph即可）
 
 		grads_val = self.extractor.get_gradients()[-1].cpu().data.numpy()
 
@@ -144,7 +143,7 @@ class GuidedBackpropReLU(Function):
 
 class GuidedBackpropReLUModel:
 	def __init__(self, model, use_cuda):
-		self.model = resnet
+		self.model = resnet#这里同理，要的是一个完整的网络，不然最后维度会不匹配。
 		self.model.eval()
 		self.cuda = use_cuda
 		if self.cuda:
@@ -188,7 +187,7 @@ def get_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--use-cuda', action='store_true', default=False,
 	                    help='Use NVIDIA GPU acceleration')
-	parser.add_argument('--image-path', type=str, default='./examples/naicha.jpg',
+	parser.add_argument('--image-path', type=str, default='./examples/mao.jpg',
 	                    help='Input image path')
 	args = parser.parse_args()
 	args.use_cuda = args.use_cuda and torch.cuda.is_available()
@@ -212,7 +211,7 @@ if __name__ == '__main__':
 	# Can work with any model, but it assumes that the model has a 
 	# feature method, and a classifier method,
 	# as in the VGG models in torchvision.
-	model = models.resnet50(pretrained=True)
+	model = models.resnet50(pretrained=True)#这里相对vgg19而言我们处理的不一样，这里需要删除fc层，因为后面model用到的时候会用不到fc层，只查到fc层之前的所有层数。
 	del model.fc
 	print(model)
 	#modules = list(resnet.children())[:-1]
@@ -220,7 +219,7 @@ if __name__ == '__main__':
 
 	#print(model)
 	grad_cam = GradCam(model , \
-					target_layer_names = ["layer4"], use_cuda=args.use_cuda)
+					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的）
 	#print(type(grad_cam))
 	img = cv2.imread(args.image_path, 1)
 	img = np.float32(cv2.resize(img, (224, 224))) / 255
