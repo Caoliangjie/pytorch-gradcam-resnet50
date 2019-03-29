@@ -7,7 +7,10 @@ import cv2
 import sys
 import numpy as np
 import argparse
+import os
+i=0
 resnet = models.resnet50(pretrained=True)#这里单独加载一个包含全连接层的resnet50模型
+image = []
 class FeatureExtractor():
     """ Class for extracting activations and 
     registering gradients from targetted intermediate layers """
@@ -66,12 +69,12 @@ def preprocess_image(img):
 	input = Variable(preprocessed_img, requires_grad = True)
 	return input
 
-def show_cam_on_image(img, mask):
+def show_cam_on_image(img, mask,name):
 	heatmap = cv2.applyColorMap(np.uint8(255*mask), cv2.COLORMAP_JET)
 	heatmap = np.float32(heatmap) / 255
 	cam = heatmap + np.float32(img)
 	cam = cam / np.max(cam)
-	cv2.imwrite("cam.jpg", np.uint8(255 * cam))
+	cv2.imwrite("cam/cam_{}.jpg".format(name), np.uint8(255 * cam))
 class GradCam:
 	def __init__(self, model, target_layer_names, use_cuda):
 		self.model = model
@@ -187,7 +190,7 @@ def get_args():
 	parser = argparse.ArgumentParser()
 	parser.add_argument('--use-cuda', action='store_true', default=False,
 	                    help='Use NVIDIA GPU acceleration')
-	parser.add_argument('--image-path', type=str, default='./examples/mao.jpg',
+	parser.add_argument('--image-path', type=str, default='./examples/',
 	                    help='Input image path')
 	args = parser.parse_args()
 	args.use_cuda = args.use_cuda and torch.cuda.is_available()
@@ -219,28 +222,34 @@ if __name__ == '__main__':
 
 	#print(model)
 	grad_cam = GradCam(model , \
-					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的）
+					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的） 
+	x=os.walk(args.image_path)  
+	for root,dirs,filename in x:
 	#print(type(grad_cam))
-	img = cv2.imread(args.image_path, 1)
-	img = np.float32(cv2.resize(img, (224, 224))) / 255
-	input = preprocess_image(img)
-	print('input.size()=',input.size())
+		print(filename)
+	for s in filename:
+    		image.append(cv2.imread(args.image_path+s,1))
+		#img = cv2.imread(filename, 1)
+	for img in image:
+		img = np.float32(cv2.resize(img, (224, 224))) / 255
+		input = preprocess_image(img)
+		print('input.size()=',input.size())
 	# If None, returns the map for the highest scoring category.
 	# Otherwise, targets the requested index.
-	target_index =None
+		target_index =None
 
-	mask = grad_cam(input, target_index)
+		mask = grad_cam(input, target_index)
 	#print(type(mask))
+		i=i+1 
+		show_cam_on_image(img, mask,i)
 
-	show_cam_on_image(img, mask)
+		#gb_model = GuidedBackpropReLUModel(model = model, use_cuda=args.use_cuda)
+		#gb = gb_model(input, index=target_index)
+		#utils.save_image(torch.from_numpy(gb), 'gb.jpg')
 
-	gb_model = GuidedBackpropReLUModel(model = model, use_cuda=args.use_cuda)
-	gb = gb_model(input, index=target_index)
-	utils.save_image(torch.from_numpy(gb), 'gb.jpg')
+		#cam_mask = np.zeros(gb.shape)
+		#for i in range(0, gb.shape[0]):
+	    	#	cam_mask[i, :, :] = mask
 
-	cam_mask = np.zeros(gb.shape)
-	for i in range(0, gb.shape[0]):
-	    cam_mask[i, :, :] = mask
-
-	cam_gb = np.multiply(cam_mask, gb)
-	utils.save_image(torch.from_numpy(cam_gb), 'cam_gb.jpg')
+		#cam_gb = np.multiply(cam_mask, gb)
+		#utils.save_image(torch.from_numpy(cam_gb), 'cam_gb.jpg')
