@@ -50,8 +50,11 @@ class ModelOutputs():
 		target_activations, output  = self.feature_extractor(x)
 		output = output.view(output.size(0), -1)
 		print('classfier=',output.size())
-		output = resnet.fc(output)##这里就是为什么我们多加载一个resnet模型进来的原因，因为后面我们命名的model不包含fc层，但是这里又偏偏要使用。
-		#print(output.size())
+		if self.cuda:
+			output = output.cpu()
+			output = resnet.fc(output).cuda()##这里就是为什么我们多加载一个resnet模型进来的原因，因为后面我们命名的model不包含fc层，但是这里又偏偏要使用。
+		else:
+			output = resnet.fc(output)##这里对应use-cuda上更正一些bug,不然用use-cuda的时候会导致类型对不上,这样保证既可以在cpu上运行,gpu上运行也不会出问题.
 		return target_activations, output
 
 def preprocess_image(img):
