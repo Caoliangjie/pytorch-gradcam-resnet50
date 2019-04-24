@@ -105,8 +105,8 @@ class GradCam:
 		else:
 			one_hot = torch.sum(one_hot * output)
 
-		self.model.zero_grad()##这两行同理，features不包含，可以重新加回去试一试，会报错不包含这个对象。
-		self.model.zero_grad()
+		self.model.zero_grad()##features和classifier不包含，可以重新加回去试一试，会报错不包含这个对象。
+		#self.model.zero_grad()
 		one_hot.backward(retain_graph=True)##这里适配我们的torch0.4及以上，我用的1.0也可以完美兼容。（variable改成graph即可）
 
 		grads_val = self.extractor.get_gradients()[-1].cpu().data.numpy()
