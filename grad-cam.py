@@ -39,10 +39,10 @@ class ModelOutputs():
 	1. The network output.
 	2. Activations from intermeddiate targetted layers.
 	3. Gradients from intermeddiate targetted layers. """
-	def __init__(self, model, target_layers):
+	def __init__(self, model, target_layers,use_cuda):
 		self.model = model
 		self.feature_extractor = FeatureExtractor(self.model, target_layers)
-
+		self.cuda = use_cuda
 	def get_gradients(self):
 		return self.feature_extractor.gradients
 
@@ -86,7 +86,7 @@ class GradCam:
 		if self.cuda:
 			self.model = model.cuda()
 
-		self.extractor = ModelOutputs(self.model, target_layer_names)
+		self.extractor = ModelOutputs(self.model, target_layer_names, use_cuda)
 
 	def forward(self, input):
 		return self.model(input) 
