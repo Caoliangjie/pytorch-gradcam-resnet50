@@ -69,7 +69,7 @@ def preprocess_image(img):
 		np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
 	preprocessed_img = torch.from_numpy(preprocessed_img)
 	preprocessed_img.unsqueeze_(0)
-	input = Variable(preprocessed_img, requires_grad = True)
+	input = torch.Tensor(preprocessed_img)
 	return input
 
 def show_cam_on_image(img, mask,name):
