@@ -1,5 +1,5 @@
 import torch
-from torch.autograd import Variable
+
 from torch.autograd import Function
 from torchvision import models
 from torchvision import utils
@@ -102,7 +102,7 @@ class GradCam:
 
 		one_hot = np.zeros((1, output.size()[-1]), dtype = np.float32)
 		one_hot[0][index] = 1
-		one_hot = Variable(torch.from_numpy(one_hot), requires_grad = True)
+		one_hot = torch.Tensor(torch.from_numpy(one_hot))
 		if self.cuda:
 			one_hot = torch.sum(one_hot.cuda() * output)
 		else:
@@ -174,7 +174,7 @@ class GuidedBackpropReLUModel:
 
 		one_hot = np.zeros((1, output.size()[-1]), dtype = np.float32)
 		one_hot[0][index] = 1
-		one_hot = Variable(torch.from_numpy(one_hot), requires_grad = True)
+		one_hot = torch.Tensor(torch.from_numpy(one_hot))
 		if self.cuda:
 			one_hot = torch.sum(one_hot.cuda() * output)
 		else:
