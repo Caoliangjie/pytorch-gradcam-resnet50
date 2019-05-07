@@ -10,7 +10,6 @@ import argparse
 import os
 i=0
 resnet = models.resnet50(pretrained=True)#这里单独加载一个包含全连接层的resnet50模型
-resnet = torch.load('')
 image = []
 class FeatureExtractor():
     """ Class for extracting activations and 
