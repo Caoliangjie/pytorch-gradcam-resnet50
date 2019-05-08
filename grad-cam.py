@@ -32,7 +32,7 @@ class FeatureExtractor():
             if name in self.target_layers:
                 x.register_hook(self.save_gradient)
                 outputs += [x]
-            #print('outputs.size()=',x.size())
+            print('outputs.size()=',x.size())
         #print('len(outputs)',len(outputs))
         return outputs, x
 
@@ -115,13 +115,16 @@ class GradCam:
 		one_hot.backward(retain_graph=True)##这里适配我们的torch0.4及以上，我用的1.0也可以完美兼容。（variable改成graph即可）
 
 		grads_val = self.extractor.get_gradients()[-1].cpu().data.numpy()
-
+		print('grads_val',grads_val.shape)
 		target = features[-1]
 		target = target.cpu().data.numpy()[0, :]
 
 		weights = np.mean(grads_val, axis = (2, 3))[0, :]
+		print('weights',weights.shape)
 		cam = np.zeros(target.shape[1 : ], dtype = np.float32)
-
+		print('cam',cam.shape)
+		print('features',features[-1].shape)
+		print('target',target.shape)
 		for i, w in enumerate(weights):
 			cam += w * target[i, :, :]
 
