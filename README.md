@@ -3,27 +3,22 @@ Usage: `python grad-cam.py --image-path <path_to_image>`
 To use with CUDA:
 `python grad-cam.py --image-path <path_to_image> --use-cuda`
 
+This above understands English should be able to understand how to use, I just changed the original vgg19 network into imagenet pre-trained resnet50, in fact, for any processing of pictures can still be used, but we are doing The video is very troublesome, because the network has more one-dimensional time dimension, which makes me a headache. Therefore, although I have changed this thing, I don’t have any sense of accomplishment. Let me use it for everyone who wants to use the resnet50 network to test the cam map.
 
-这个上面的懂点英文都应该看得懂怎么用，我这个只不过把原始的vgg19网络改成了imagenet预训练的resnet50而已，实际上对于任意的处理图片的还是可以用的，但是我们是做视频的，就搞得很麻烦，因为网络多一维时间维，搞得我很头痛。因此虽然改出来了这个东西但是并没有什么成就感，放出来给各位想用resnet50网络来测试cam图的各位用吧。
+##note
 
-
-## 注意
-
-上面默认的image_path已经是./examples了
+The default IMAGE_PATH above is already `./examples`
 
 
-[原始链接](https://github.com/jacobgil/pytorch-grad-cam)
+[Original link] (https://github.com/jacobgil/pytorch-grad-cam)
 
 
-虽然看的还是英文，但是什么时候中文才能普及全球呢.....
-
-
-## 后续说明
-这两天研究了一下发现这个cam也就是单纯一个提取特征之后把features结合到我们的原图上，实际上如果不是研究很细致的话不需要了解原理。因为中间一系列的数学过程其实就是提特征，完事我们再把这个特征和原图组合起来。说一千道一万其实我们只要能在网络中先提取特征，再把特征保存下来，之后自己用opencv拼合特征图和原图也是可以做到的。（目前这个路子应该是很传统，比较笨，但是也是很简单能实现。）
-后续要是有时间再研究的话可能会这么更新一下，不过我感觉这个工作做到这儿也就到头了，毕竟视频帧的可视化我们直接在自己大工程中任意处找准位置就可以输出的，不需要搞得这么麻烦。
-目前可以证实第一段的做法从理论上讲没有问题，通过本地之前的工程验证过运用本工程的show_cam_on_image与用opencv拼接两张图而言，两个图打印效果是不差的。（opencv参数可能需要微调，这个根据个人情况因人而异）如果确实想按照2d这种思路做确实有可能由于自己设置网络的时候由于时间维度的偏差会导致映射效果不好之类的。（因为一般我们数据预处理的时候要求的视频帧一定是有代表性的，所以帧与帧之间肯定保证人用肉眼也可以看的出来。）
-## 思路流程
-1. 首先先解决提取特征的问题，这个其实基于现有的框架的内置函数比较好做，而且一般提取的特征我们主要从conv层后面进行筛选。对于3d的network确实因为时间维度存在，一开始对于这里提取特征会存在困惑。但是简单想一下实际上只要把时间维上每一个存的图片拿出来然后打出对应每张图过完conv的特征也是可以做到的。
-2. 提取好特征想做出这种拼合的效果可以做的方法有很多，这个我上面也有提到，如果继续套用本工程的话确实后面可能会出现对应的特征无法映射到原图的问题。这里确实需要我们人眼来观察最后将得到的特征分布映射到关键帧上。（也就是说我们可以先把feature存下，再将得到的feature一一映射会每个关键帧，用肉眼选取效果最好的一个，也未尝不是一种做法。）
-## 总结
-确实是对于视频帧处理的话需要考虑到最后有关不同维度梯度时会出现问题。不过cam还是可以按照本工程对应的代码段把特征做出来的，之后按照我们之前讲的拼接方法将对应的cam图和origin clips结合即可。
+## Follow-up instructions
+After two days of research, I found out that this cam is a simple feature that combines features into our original image. In fact, if the research is not very detailed, you don't need to understand the principle. Because the middle of a series of mathematical processes is actually to mention the features, we will combine this feature with the original image. Say a thousand 10,000. In fact, as long as we can extract features in the network, and then save the features, then we can use Opencv to combine the feature map and the original image can also be done. (Currently this path should be very traditional, stupid, but very simple to implement.)
+If there is time to study again, it may be updated like this, but I feel that this work will be done here. After all, the visualization of video frames can be output directly at any position in the big project. Made it so troublesome.
+At present, it can be confirmed that the first paragraph of the practice is theoretically no problem. The local show before the show_cam_on_image using the project and the two images with the opencv stitching, the two pictures print effect is not bad. (The opencv parameter may need to be fine-tuned. This varies from person to person depending on the individual situation.) If you really want to follow the 2d idea, it is possible that the mapping effect will be poor due to the deviation of the time dimension when setting up the network. (Because the video frames required by our data preprocessing are generally representative, so the frame and the frame must be guaranteed to be visible to the naked eye.)
+## Thought Process
+1. First solve the problem of extracting features. This is actually based on the built-in functions of the existing framework, and the features extracted are mainly filtered from the back of the conv layer. For the 3d network, it really exists because of the time dimension. At first, there is confusion about extracting features here. But simply think about it, as long as you take out each of the saved pictures in the time dimension and then print out the features corresponding to each picture and conv.
+2. Extracting good features There are many ways to do this kind of flattening. I have mentioned above. If you continue to apply this project, it may happen that the corresponding features cannot be mapped to the original image. It really needs us to see the last distribution of the feature distribution mapped to the keyframe. (That is to say, we can save the feature first, then map the obtained features one by one to each keyframe, and select the best one with the naked eye, which is not a practice.)
+## to sum up
+It is true that for video frame processing, it is necessary to consider the final problem with different dimensional gradients. However, the cam can still make the features according to the code segment corresponding to the project, and then combine the corresponding cam map and the original clips according to the stitching method we have previously mentioned.
