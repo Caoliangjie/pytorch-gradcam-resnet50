@@ -5,7 +5,7 @@ To use with CUDA:
 
 This above understands English should be able to understand how to use, I just changed the original vgg19 network into imagenet pre-trained resnet50, in fact, for any processing of pictures can still be used, but we are doing The video is very troublesome, because the network has more one-dimensional time dimension, which makes me a headache. Therefore, although I have changed this thing, I don’t have any sense of accomplishment. Let me use it for everyone who wants to use the resnet50 network to test the cam map.
 
-##note
+## Notice
 
 The default IMAGE_PATH above is already `./examples`
 
