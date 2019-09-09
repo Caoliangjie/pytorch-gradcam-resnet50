@@ -10,7 +10,7 @@ This above understands English should be able to understand how to use, I just c
 The default IMAGE_PATH above is already `./examples`
 
 
-[Original link] (https://github.com/jacobgil/pytorch-grad-cam)
+[Original link](https://github.com/jacobgil/pytorch-grad-cam)
 
 
 ## Follow-up instructions
