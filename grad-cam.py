@@ -5,6 +5,7 @@ from torchvision import models
 from torchvision import utils
 import cv2
 import sys
+from collections import OrderedDict
 import numpy as np
 import argparse
 import os
@@ -27,12 +28,12 @@ class FeatureExtractor():
         self.gradients = []
         for name, module in self.model._modules.items():##resnet50没有.feature这个特征，直接删除用就可以。
             x = module(x)
-            print('name=',name)
-            print('x.size()=',x.size())
+            #print('name=',name)
+            #print('x.size()=',x.size())
             if name in self.target_layers:
                 x.register_hook(self.save_gradient)
                 outputs += [x]
-            print('outputs.size()=',x.size())
+            #print('outputs.size()=',x.size())
         #print('len(outputs)',len(outputs))
         return outputs, x
 
@@ -51,7 +52,7 @@ class ModelOutputs():
 	def __call__(self, x):
 		target_activations, output  = self.feature_extractor(x)
 		output = output.view(output.size(0), -1)
-		print('classfier=',output.size())
+		#print('classfier=',output.size())
 		if self.cuda:
 			output = output.cpu()
 			output = resnet.fc(output).cuda()##这里就是为什么我们多加载一个resnet模型进来的原因，因为后面我们命名的model不包含fc层，但是这里又偏偏要使用。#
@@ -71,7 +72,8 @@ def preprocess_image(img):
 		np.ascontiguousarray(np.transpose(preprocessed_img, (2, 0, 1)))
 	preprocessed_img = torch.from_numpy(preprocessed_img)
 	preprocessed_img.unsqueeze_(0)
-	input = torch.Tensor(preprocessed_img)
+	input = preprocessed_img
+	input.requires_grad = True
 	return input
 
 def show_cam_on_image(img, mask,name):
@@ -105,6 +107,7 @@ class GradCam:
 		one_hot = np.zeros((1, output.size()[-1]), dtype = np.float32)
 		one_hot[0][index] = 1
 		one_hot = torch.Tensor(torch.from_numpy(one_hot))
+		one_hot.requires_grad = True
 		if self.cuda:
 			one_hot = torch.sum(one_hot.cuda() * output)
 		else:
@@ -115,16 +118,16 @@ class GradCam:
 		one_hot.backward(retain_graph=True)##这里适配我们的torch0.4及以上，我用的1.0也可以完美兼容。（variable改成graph即可）
 
 		grads_val = self.extractor.get_gradients()[-1].cpu().data.numpy()
-		print('grads_val',grads_val.shape)
+		#print('grads_val',grads_val.shape)
 		target = features[-1]
 		target = target.cpu().data.numpy()[0, :]
 
 		weights = np.mean(grads_val, axis = (2, 3))[0, :]
-		print('weights',weights.shape)
+		#print('weights',weights.shape)
 		cam = np.zeros(target.shape[1 : ], dtype = np.float32)
-		print('cam',cam.shape)
-		print('features',features[-1].shape)
-		print('target',target.shape)
+		#print('cam',cam.shape)
+		#print('features',features[-1].shape)
+		#print('target',target.shape)
 		for i, w in enumerate(weights):
 			cam += w * target[i, :, :]
 
@@ -154,16 +157,24 @@ class GuidedBackpropReLU(Function):
 
 class GuidedBackpropReLUModel:
 	def __init__(self, model, use_cuda):
-		self.model = resnet#这里同理，要的是一个完整的网络，不然最后维度会不匹配。
+		self.model = model#这里同理，要的是一个完整的网络，不然最后维度会不匹配。
 		self.model.eval()
 		self.cuda = use_cuda
 		if self.cuda:
 			self.model = model.cuda()
 
 		# replace ReLU with GuidedBackpropReLU
-		for idx, module in self.model._modules.items():
-			if module.__class__.__name__ == 'ReLU':
-				self.model._modules[idx] = GuidedBackpropReLU()
+		for m in self.model.modules():
+			if isinstance(m, torch.nn.ReLU):
+				self.model.m = GuidedBackpropReLU()
+				print(self.model.m)
+		for m in self.model.modules():
+		 	print(m)
+		'''for idx, module in self.model._modules.items():
+			print('idx',idx)
+			print('module',module)'''
+			#if module.__class__.__name__ == 'ReLU':
+			#	self.model._modules[idx] = GuidedBackpropReLU()
 
 	def forward(self, input):
 		return self.model(input)
@@ -173,22 +184,19 @@ class GuidedBackpropReLUModel:
 			output = self.forward(input.cuda())
 		else:
 			output = self.forward(input)
-
 		if index == None:
 			index = np.argmax(output.cpu().data.numpy())
-
+		#print(input.grad)
 		one_hot = np.zeros((1, output.size()[-1]), dtype = np.float32)
 		one_hot[0][index] = 1
-		one_hot = torch.Tensor(torch.from_numpy(one_hot))
+		one_hot = torch.from_numpy(one_hot)
+		one_hot.requires_grad = True
 		if self.cuda:
 			one_hot = torch.sum(one_hot.cuda() * output)
 		else:
 			one_hot = torch.sum(one_hot * output)
-
-		# self.model.features.zero_grad()
-		# self.model.classifier.zero_grad()
+		#self.model.classifier.zero_grad()
 		one_hot.backward(retain_graph=True)
-
 		output = input.grad.cpu().data.numpy()
 		output = output[0,:,:,:]
 
@@ -230,7 +238,7 @@ if __name__ == '__main__':
 
 	#print(model)
 	grad_cam = GradCam(model , \
-					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的） 
+					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的）
 	x=os.walk(args.image_path)  
 	for root,dirs,filename in x:
 	#print(type(grad_cam))
@@ -241,25 +249,21 @@ if __name__ == '__main__':
 	for img in image:
 		img = np.float32(cv2.resize(img, (224, 224))) / 255
 		input = preprocess_image(img)
+		input.required_grad = True
 		print('input.size()=',input.size())
 	# If None, returns the map for the highest scoring category.
 	# Otherwise, targets the requested index.
 		target_index =None
 
 		mask = grad_cam(input, target_index)
-		#plt.imshow(mask,cmap='jet')
-		#plt.show()
-	#print(type(mask))
 		i=i+1 
 		show_cam_on_image(img, mask,i)
 
-		#gb_model = GuidedBackpropReLUModel(model = model, use_cuda=args.use_cuda)
-		#gb = gb_model(input, index=target_index)
-		#utils.save_image(torch.from_numpy(gb), 'gb.jpg')
-
-		#cam_mask = np.zeros(gb.shape)
-		#for i in range(0, gb.shape[0]):
-	    	#	cam_mask[i, :, :] = mask
-
-		#cam_gb = np.multiply(cam_mask, gb)
-		#utils.save_image(torch.from_numpy(cam_gb), 'cam_gb.jpg')
+		gb_model = GuidedBackpropReLUModel(model = models.resnet50(pretrained=True), use_cuda=args.use_cuda)
+		gb = gb_model(input, index=target_index)
+		utils.save_image(torch.from_numpy(gb), 'gb/gb_{}.jpg'.format(i))
+		cam_mask = np.zeros(gb.shape)
+		for j in range(0, gb.shape[0]):
+			cam_mask[j, :, :] = mask
+		cam_gb = np.multiply(cam_mask, gb)
+		utils.save_image(torch.from_numpy(cam_gb), 'camgb/cam_gb_{}.jpg'.format(i))
