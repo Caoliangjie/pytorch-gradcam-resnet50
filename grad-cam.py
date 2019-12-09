@@ -164,12 +164,14 @@ class GuidedBackpropReLUModel:
 			self.model = model.cuda()
 
 		# replace ReLU with GuidedBackpropReLU
-		for m in self.model.modules():
-			if isinstance(m, torch.nn.ReLU):
-				self.model.m = GuidedBackpropReLU()
-				print(self.model.m)
-		for m in self.model.modules():
-		 	print(m)
+		for idx, module in self.model._modules.items():
+			if 'layer' in idx:
+				for idx1 in self.model._modules[idx]:
+					if idx1.relu.__class__.__name__ == 'ReLU':
+						print(self.model._modules[idx].relu)
+						#self.model._modules[idx].relu = GuidedBackpropReLU()
+			elif module.__class__.__name__ == 'ReLU':
+				self.model._modules[idx] = GuidedBackpropReLU()
 		'''for idx, module in self.model._modules.items():
 			print('idx',idx)
 			print('module',module)'''
