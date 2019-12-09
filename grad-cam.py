@@ -261,6 +261,10 @@ if __name__ == '__main__':
 
 		gb_model = GuidedBackpropReLUModel(model = models.resnet50(pretrained=True), use_cuda=args.use_cuda)
 		gb = gb_model(input, index=target_index)
+		if not os.path.exists('gb'):
+			os.mkdir('gb')
+		if not os.path.exists('camgb'):
+			os.mkdir('camgb')
 		utils.save_image(torch.from_numpy(gb), 'gb/gb_{}.jpg'.format(i))
 		cam_mask = np.zeros(gb.shape)
 		for j in range(0, gb.shape[0]):
