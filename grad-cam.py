@@ -9,6 +9,7 @@ from collections import OrderedDict
 import numpy as np
 import argparse
 import os
+import torch.nn as nn
 i=0
 resnet = models.resnet50(pretrained=True)#这里单独加载一个包含全连接层的resnet50模型
 image = []
@@ -137,24 +138,6 @@ class GradCam:
 		cam = cam / np.max(cam)
 		return cam
 
-class GuidedBackpropReLU(Function):
-
-    def forward(self, input):
-        positive_mask = (input > 0).type_as(input)
-        output = torch.addcmul(torch.zeros(input.size()).type_as(input), input, positive_mask)
-        self.save_for_backward(input, output)
-        return output
-
-    def backward(self, grad_output):
-        input, output = self.saved_tensors
-        grad_input = None
-
-        positive_mask_1 = (input > 0).type_as(grad_output)
-        positive_mask_2 = (grad_output > 0).type_as(grad_output)
-        grad_input = torch.addcmul(torch.zeros(input.size()).type_as(input), torch.addcmul(torch.zeros(input.size()).type_as(input), grad_output, positive_mask_1), positive_mask_2)
-
-        return grad_input
-
 class GuidedBackpropReLUModel:
 	def __init__(self, model, use_cuda):
 		self.model = model#这里同理，要的是一个完整的网络，不然最后维度会不匹配。
@@ -162,21 +145,12 @@ class GuidedBackpropReLUModel:
 		self.cuda = use_cuda
 		if self.cuda:
 			self.model = model.cuda()
+		for module in self.model.named_modules():
+			module[1].register_backward_hook(self.bp_relu)
 
-		# replace ReLU with GuidedBackpropReLU
-		for idx, module in self.model._modules.items():
-			if 'layer' in idx:
-				for idx1 in range(len(self.model._modules[idx])):
-					print(self.model._modules[idx][idx1].relu)
-					self.model._modules[idx][idx1].relu = GuidedBackpropReLU()
-			elif module.__class__.__name__ == 'ReLU':
-				self.model._modules[idx] = GuidedBackpropReLU()
-		'''for idx, module in self.model._modules.items():
-			print('idx',idx)
-			print('module',module)'''
-			#if module.__class__.__name__ == 'ReLU':
-			#	self.model._modules[idx] = GuidedBackpropReLU()
-
+	def bp_relu(self, module, grad_in, grad_out):
+		if isinstance(module, nn.ReLU):
+			return (torch.clamp(grad_in[0], min=0.0),)
 	def forward(self, input):
 		return self.model(input)
 
