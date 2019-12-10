@@ -166,10 +166,9 @@ class GuidedBackpropReLUModel:
 		# replace ReLU with GuidedBackpropReLU
 		for idx, module in self.model._modules.items():
 			if 'layer' in idx:
-				for idx1 in self.model._modules[idx]:
-					if idx1.relu.__class__.__name__ == 'ReLU':
-						print(self.model._modules[idx].relu)
-						#self.model._modules[idx].relu = GuidedBackpropReLU()
+				for idx1 in range(len(self.model._modules[idx])):
+					print(self.model._modules[idx][idx1].relu)
+					self.model._modules[idx][idx1].relu = GuidedBackpropReLU()
 			elif module.__class__.__name__ == 'ReLU':
 				self.model._modules[idx] = GuidedBackpropReLU()
 		'''for idx, module in self.model._modules.items():
@@ -241,7 +240,7 @@ if __name__ == '__main__':
 	#print(model)
 	grad_cam = GradCam(model , \
 					target_layer_names = ["layer4"], use_cuda=args.use_cuda)##这里改成layer4也很简单，我把每层name和size都打印出来了，想看哪层自己直接嵌套就可以了。（最后你会在终端看得到name的）
-	x=os.walk(args.image_path)  
+	x=os.walk(args.image_path)
 	for root,dirs,filename in x:
 	#print(type(grad_cam))
 		print(filename)
