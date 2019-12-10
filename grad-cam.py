@@ -137,7 +137,6 @@ class GradCam:
 		cam = cam - np.min(cam)
 		cam = cam / np.max(cam)
 		return cam
-
 class GuidedBackpropReLUModel:
 	def __init__(self, model, use_cuda):
 		self.model = model#这里同理，要的是一个完整的网络，不然最后维度会不匹配。

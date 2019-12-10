@@ -22,3 +22,6 @@ At present, it can be confirmed that the first paragraph of the practice is theo
 2. Extracting good features There are many ways to do this kind of flattening. I have mentioned above. If you continue to apply this project, it may happen that the corresponding features cannot be mapped to the original image. It really needs us to see the last distribution of the feature distribution mapped to the keyframe. (That is to say, we can save the feature first, then map the obtained features one by one to each keyframe, and select the best one with the naked eye, which is not a practice.)
 ## Conclusion
 It is true that for video frame processing, it is necessary to consider the final problem with different dimensional gradients. However, the cam can still make the features according to the code segment corresponding to the project, and then combine the corresponding cam map and the original clips according to the stitching method we have previously mentioned.
+## Reference
+[1] https://github.com/jacobgil/pytorch-grad-cam
+[2] https://github.com/kamata1729/visualize-pytorch
