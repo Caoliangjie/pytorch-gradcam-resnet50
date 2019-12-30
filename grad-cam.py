@@ -10,7 +10,7 @@ import numpy as np
 import argparse
 import os
 import torch.nn as nn
-i=0
+i=0##testing in vscode
 resnet = models.resnet50(pretrained=True)#这里单独加载一个包含全连接层的resnet50模型
 image = []
 class FeatureExtractor():
